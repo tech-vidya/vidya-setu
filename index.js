@@ -39,16 +39,15 @@ app.options("*", cors());
 // ================= MIDDLEWARE =================
 app.get("/api/seed", async (req, res) => {
   try {
-    // 🔐 Secret check (IMPORTANT)
+    console.log("🔥 Seed API hit");
+
     if (req.query.key !== process.env.SEED_SECRET) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    // ⚠️ Optional: prevent duplicate seeding
-    // const existingUsers = await require("./models/User").countDocuments();
-    // if (existingUsers > 0) {
-    //   return res.json({ message: "⚠️ Data already exists, skipping seeding" });
-    // }
+    console.log("🌱 Running seedData...");
+    await seedData();   // ✅ THIS WAS MISSING
+    console.log("✅ Seeding done");
 
     res.json({
       message: "✅ Database seeded successfully"
