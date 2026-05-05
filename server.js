@@ -5,100 +5,79 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
-const path = require('path');
 
-// Load environment variables
 dotenv.config();
 
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const contentRoutes = require('./routes/contentRoutes');
-const quizRoutes = require('./routes/quizRoutes');
-const progressRoutes = require('./routes/progressRoutes');
-const userRoutes = require('./routes/userRoutes');
-
-// Import error handler middleware
-const errorHandler = require('./middleware/errorHandler');
-
-// Initialize app
 const app = express();
 
-// ================= MIDDLEWARE =================
-app.use(helmet());
-app.use(compression());
-app.use(morgan('combined'));
+// ================= CORS FIX (IMPORTANT) =================
+
+const allowedOrigins = [
+  "https://vidya-setu-ui.vercel.app", // ❗ NO trailing slash
+  "http://localhost:3000"
+];
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://vidya-setu-ui.vercel.app',
-  credentials: true
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("CORS not allowed"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// 👇 handle preflight
+app.options("*", cors());
 
-// ================= STATIC FILES =================
+// ================= MIDDLEWARE =================
 
-// uploads folder
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(helmet());
+app.use(compression());
+app.use(morgan('dev'));
 
-// 👉 IMPORTANT: serve Vite build
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-// ================= API ROUTES =================
+// ================= ROUTES =================
 
-app.use('/api/auth', authRoutes);
-app.use('/api/content', contentRoutes);
-app.use('/api/quizzes', quizRoutes);
-app.use('/api/progress', progressRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/content', require('./routes/contentRoutes'));
+app.use('/api/quizzes', require('./routes/quizRoutes'));
+app.use('/api/progress', require('./routes/progressRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 
-// ================= HEALTH CHECK =================
+// ================= HEALTH =================
 
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'VidyaSetu API is running',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ================= SPA FALLBACK =================
-// 👇 MOST IMPORTANT (fixes 404 for React routes & assets)
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.json({ status: "OK", time: new Date() });
 });
 
 // ================= ERROR HANDLER =================
 
-app.use(errorHandler);
+app.use((err, req, res, next) => {
+  console.error("❌ Error:", err.message);
+  res.status(500).json({ error: err.message });
+});
 
-// ================= DATABASE =================
+// ================= DB + SERVER =================
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB Atlas');
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("✅ MongoDB Connected");
 
-  const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 5000;
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error("❌ DB Error:", err);
   });
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
-});
-
-// ================= GLOBAL ERROR =================
-
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
-});
-
-module.exports = app;
