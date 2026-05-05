@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const seedData = require("./seedData");
 
 dotenv.config();
 
@@ -37,6 +38,19 @@ app.use(cors({
 app.options("*", cors());
 
 // ================= MIDDLEWARE =================
+app.get("/seed", async (req, res) => {
+  // 🔐 basic protection (must)
+  if (req.query.secret !== "mysecret123") {
+    return res.status(403).send("Unauthorized");
+  }
+
+  try {
+    await seedData();
+    res.send("✅ Data seeded successfully");
+  } catch (err) {
+    res.status(500).send("❌ Error seeding");
+  }
+});
 
 app.use(helmet());
 app.use(compression());
