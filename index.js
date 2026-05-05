@@ -45,10 +45,10 @@ app.get("/api/seed", async (req, res) => {
     }
 
     // ⚠️ Optional: prevent duplicate seeding
-    const existingUsers = await require("./models/User").countDocuments();
-    if (existingUsers > 0) {
-      return res.json({ message: "⚠️ Data already exists, skipping seeding" });
-    }
+    // const existingUsers = await require("./models/User").countDocuments();
+    // if (existingUsers > 0) {
+    //   return res.json({ message: "⚠️ Data already exists, skipping seeding" });
+    // }
 
     await seedData();
 
