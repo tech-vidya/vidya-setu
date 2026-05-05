@@ -37,30 +37,30 @@ app.use(cors({
 app.options("*", cors());
 
 // ================= MIDDLEWARE =================
-app.get("/api/seed", async (req, res) => {
-  try {
-    console.log("🔥 Seed API hit");
+// app.get("/api/seed", async (req, res) => {
+//   try {
+//     console.log("🔥 Seed API hit");
 
-    if (req.query.key !== process.env.SEED_SECRET) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
+//     if (req.query.key !== process.env.SEED_SECRET) {
+//       return res.status(403).json({ message: "Unauthorized" });
+//     }
 
-    console.log("🌱 Running seedData...");
-    await seedData();   // ✅ THIS WAS MISSING
-    console.log("✅ Seeding done");
+//     console.log("🌱 Running seedData...");
+//     await seedData();   // ✅ THIS WAS MISSING
+//     console.log("✅ Seeding done");
 
-    res.json({
-      message: "✅ Database seeded successfully"
-    });
+//     res.json({
+//       message: "✅ Database seeded successfully"
+//     });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "❌ Seeding failed",
-      error: error.message
-    });
-  }
-});
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       message: "❌ Seeding failed",
+//       error: error.message
+//     });
+//   }
+// });
 
 app.use(helmet());
 app.use(compression());
@@ -93,8 +93,22 @@ app.use((err, req, res, next) => {
 // ================= DB + SERVER =================
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log("✅ MongoDB Connected");
+
+    // ✅ CHECK FLAG (important)
+    const alreadySeeded = process.env.SEED_DONE === "true";
+
+    if (!alreadySeeded) {
+      console.log("🌱 Running seed...");
+
+      await seedData();
+
+      console.log("✅ Seeding done");
+
+      // ⚠️ IMPORTANT: set env manually after first run
+      // console.log("👉 अब .env me SEED_DONE=true set kar do");
+    }
 
     const PORT = process.env.PORT || 5000;
 
@@ -102,6 +116,3 @@ mongoose.connect(process.env.MONGODB_URI)
       console.log(`🚀 Server running on port ${PORT}`);
     });
   })
-  .catch(err => {
-    console.error("❌ DB Error:", err);
-  });
