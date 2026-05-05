@@ -6,7 +6,6 @@ const compression = require('compression');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const seedData = require("./seedData");
-
 dotenv.config();
 
 const app = express();
@@ -38,17 +37,31 @@ app.use(cors({
 app.options("*", cors());
 
 // ================= MIDDLEWARE =================
-app.get("/seed", async (req, res) => {
-  // 🔐 basic protection (must)
-  if (req.query.secret !== "mysecret123") {
-    return res.status(403).send("Unauthorized");
-  }
-
+app.get("/api/seed", async (req, res) => {
   try {
+    // 🔐 Secret check (IMPORTANT)
+    if (req.query.key !== process.env.SEED_SECRET) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // ⚠️ Optional: prevent duplicate seeding
+    const existingUsers = await require("./models/User").countDocuments();
+    if (existingUsers > 0) {
+      return res.json({ message: "⚠️ Data already exists, skipping seeding" });
+    }
+
     await seedData();
-    res.send("✅ Data seeded successfully");
-  } catch (err) {
-    res.status(500).send("❌ Error seeding");
+
+    res.json({
+      message: "✅ Database seeded successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "❌ Seeding failed",
+      error: error.message
+    });
   }
 });
 
