@@ -29,7 +29,7 @@ app.use(compression());
 app.use(morgan('combined'));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'https://vidya-setu-ui.vercel.app/',
   credentials: true
 }));
 
