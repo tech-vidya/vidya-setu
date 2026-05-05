@@ -6,8 +6,8 @@
   "type": "commonjs",
 
   "scripts": {
-    "start": "node seedData.js && node server.js",
-    "dev": "nodemon server.js",
+    "start": "node seedData.js && node index.js",
+    "dev": "nodemon index.js",
     "seed": "node seedData.js"
   },
 
