@@ -50,8 +50,6 @@ app.get("/api/seed", async (req, res) => {
     //   return res.json({ message: "⚠️ Data already exists, skipping seeding" });
     // }
 
-    await seedData();
-
     res.json({
       message: "✅ Database seeded successfully"
     });
